@@ -1,3 +1,94 @@
+# 千问微调指南
+
+## 软件依赖
+
+- Python 3.8+ 和 PyTorch 1.13.1+
+- 🤗Transformers, Datasets, Accelerate, PEFT 和 TRL
+- sentencepiece 和 tiktoken
+- jieba, rouge-chinese 和 nltk (用于评估)
+- gradio 和 matplotlib (用于网页端交互)
+- uvicorn, fastapi 和 sse-starlette (用于 API)
+
+以及 **强而有力的 GPU**！
+
+## 如何使用
+
+### 数据准备（可跳过）
+
+关于数据集文件的格式，请参考 `data/example_dataset` 文件夹的内容。构建自定义数据集时，既可以使用单个 `.json` 文件，也可以使用一个[数据加载脚本](https://huggingface.co/docs/datasets/dataset_script)和多个文件。
+
+注意：使用自定义数据集时，请更新 `data/dataset_info.json` 文件，该文件的格式请参考 `data/README.md`。
+
+### 环境搭建（可跳过）
+
+```bash
+git clone https://github.com/ArtificialZeng/Qwen-Tuning
+conda create -n qwen_etuning python=3.10
+conda activate qwen_etuning
+cd Qwen-Tuning
+pip install -r requirements.txt
+```
+
+如果要在 Windows 平台上开启量化 LoRA（QLoRA），需要安装预编译的 `bitsandbytes` 库, 支持 CUDA 11.1 到 12.1.
+
+```bash
+pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.39.1-py3-none-win_amd64.whl
+```
+
+### 浏览器一键微调/测试
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python src/train_web.py
+```
+
+目前网页 UI 仅支持**单卡训练**。如果要多卡训练，请用以下的命令行形式：
+
+
+### qwen指令监督微调(SFT - 一般这个用的最多，预训练脚本在下面)
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
+    --stage sft \
+    --model_name_or_path path_to_your_model \
+    --do_train \
+    --dataset alpaca_gpt4_zh \
+    --template qwen \
+    --finetuning_type lora \
+    --output_dir path_to_sft_checkpoint \
+    --overwrite_cache \
+    --per_device_train_batch_size 4 \
+    --gradient_accumulation_steps 4 \
+    --lr_scheduler_type cosine \
+    --logging_steps 10 \
+    --save_steps 1000 \
+    --learning_rate 5e-5 \
+    --num_train_epochs 3.0 \
+    --plot_loss \
+    --lora_target W_pack \
+    --fp16
+```
+### 预训练
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
+    --stage pt \
+    --model_name_or_path path_to_your_model \
+    --do_train \
+    --dataset wiki_demo \
+    --template default \
+    --finetuning_type lora \
+    --output_dir path_to_pt_checkpoint \
+    --overwrite_cache \
+    --per_device_train_batch_size 4 \
+    --gradient_accumulation_steps 4 \
+    --lr_scheduler_type cosine \
+    --logging_steps 10 \
+    --save_steps 1000 \
+    --learning_rate 5e-5 \
+    --num_train_epochs 3.0 \
+    --plot_loss \
+    --fp16
+```
 # Qwen Efficient Tuning
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/LLaMA-Efficient-Tuning?style=social)](https://github.com/hiyouga/LLaMA-Efficient-Tuning/stargazers)
@@ -16,13 +107,13 @@
 
 [23/07/31] 现在我们支持了训练数据流式加载。请尝试使用 `--streaming` 和 `--max_steps 100` 参数来流式加载数据集。
 
-[23/07/29] 我们在 Hugging Face 发布了两个 13B 指令微调模型。详细内容请查阅我们的 Hugging Face 项目（[LLaMA-2](https://huggingface.co/hiyouga/Llama-2-Chinese-13b-chat) / [Baichuan](https://huggingface.co/hiyouga/baichuan-13b-sft)）。
+[23/07/29] 我们在 Hugging Face 发布了两个 13B 指令微调模型。详细内容请查阅我们的 Hugging Face 项目（[LLaMA-2](https://huggingface.co/hiyouga/Llama-2-Chinese-13b-chat) / [qwen](https://huggingface.co/hiyouga/qwen-13b-sft)）。
 
 [23/07/19] 现在我们支持了 **LLaMA-2** 模型的训练。请尝试使用 `--model_name_or_path meta-llama/Llama-2-7b-hf` 参数。请注意使用 LLaMA-2-chat 模型需要添加 `--template llama2` 参数。
 
 [23/07/18] 我们开发了支持训练和测试的浏览器一键微调界面。请尝试使用 `train_web.py` 在您的浏览器中微调模型。感谢 [@KanadeSiina](https://github.com/KanadeSiina) 和 [@codemayq](https://github.com/codemayq) 在该功能开发中付出的努力。
 
-[23/07/11] 现在我们支持了 **Baichuan-13B** 模型的训练。请尝试使用 `--model_name_or_path baichuan-inc/Baichuan-13B-Base` 和 `--lora_target W_pack` 参数。请注意使用 Baichuan-13B-Chat 模型需要添加 `--template baichuan` 参数。
+[23/07/11] 现在我们支持了 **qwen-13B** 模型的训练。请尝试使用 `--model_name_or_path qwen-inc/qwen-13B-Base` 和 `--lora_target W_pack` 参数。请注意使用 qwen-13B-Chat 模型需要添加 `--template qwen` 参数。
 
 [23/07/09] 我们开源了 [FastEdit](https://github.com/hiyouga/FastEdit)⚡🩹，一个简单易用的、能迅速编辑大模型事实记忆的工具包。如果您感兴趣请关注我们的 [FastEdit](https://github.com/hiyouga/FastEdit) 项目。
 
@@ -30,11 +121,11 @@
 
 [23/07/05] 现在我们支持了 **Falcon-7B/40B** 模型的训练。请尝试使用 `--model_name_or_path tiiuae/falcon-7b` 和 `--lora_target query_key_value` 参数。
 
-[23/06/29] 我们提供了一个**可复现的**指令模型微调示例，详细内容请查阅 [Hugging Face 项目](https://huggingface.co/hiyouga/baichuan-7b-sft)。
+[23/06/29] 我们提供了一个**可复现的**指令模型微调示例，详细内容请查阅 [Hugging Face 项目](https://huggingface.co/hiyouga/qwen-7b-sft)。
 
 [23/06/22] 我们对齐了[示例 API](src/api_demo.py) 与 [OpenAI API](https://platform.openai.com/docs/api-reference/chat) 的格式，您可以将微调模型接入任意基于 ChatGPT 的应用中。
 
-[23/06/15] 现在我们支持了 **Baichuan-7B** 模型的训练。请尝试使用 `--model_name_or_path baichuan-inc/Baichuan-7B` 和 `--lora_target W_pack` 参数。
+[23/06/15] 现在我们支持了 **qwen-7B** 模型的训练。请尝试使用 `--model_name_or_path qwen-inc/qwen-7B` 和 `--lora_target W_pack` 参数。
 
 [23/06/03] 现在我们实现了 4 比特的 LoRA 训练（也称 [QLoRA](https://github.com/artidoro/qlora)）。请尝试使用 `--quantization_bit 4` 参数进行 4 比特量化微调。
 
@@ -46,7 +137,7 @@
 - [LLaMA-2](https://huggingface.co/meta-llama) (7B/13B/70B)
 - [BLOOM](https://huggingface.co/bigscience/bloom) & [BLOOMZ](https://huggingface.co/bigscience/bloomz) (560M/1.1B/1.7B/3B/7.1B/176B)
 - [Falcon](https://huggingface.co/tiiuae/falcon-7b) (7B/40B)
-- [Baichuan](https://huggingface.co/baichuan-inc/baichuan-7B) (7B/13B)
+- [qwen](https://huggingface.co/qwen-inc/qwen-7B) (7B/13B)
 - [InternLM](https://github.com/InternLM/InternLM) (7B)
 - [Qwen](https://github.com/QwenLM/Qwen-7B) (7B)
 
@@ -200,7 +291,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --fp16
 ```
 
-使用 Baichuan 模型时请指定 `--lora_target W_pack` 参数。
+使用 qwen 模型时请指定 `--lora_target W_pack` 参数。
 
 ### 奖励模型训练
 
@@ -380,7 +471,7 @@ python src/export_model.py \
 - [LLaMA-2](https://ai.meta.com/llama/license/)
 - [BLOOM](https://huggingface.co/spaces/bigscience/license)
 - [Falcon](LICENSE)
-- [Baichuan](https://huggingface.co/baichuan-inc/baichuan-7B/resolve/main/baichuan-7B%20%E6%A8%A1%E5%9E%8B%E8%AE%B8%E5%8F%AF%E5%8D%8F%E8%AE%AE.pdf)
+- [qwen](https://huggingface.co/qwen-inc/qwen-7B/resolve/main/qwen-7B%20%E6%A8%A1%E5%9E%8B%E8%AE%B8%E5%8F%AF%E5%8D%8F%E8%AE%AE.pdf)
 - [InternLM](https://github.com/InternLM/InternLM#open-source-license)
 - [Qwen](https://huggingface.co/Qwen/Qwen-7B-Chat/blob/main/LICENSE)
 
