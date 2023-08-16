@@ -1,4 +1,4 @@
-# 千问微调指南
+# 千问Qwen微调指南
 
 ## 软件依赖
 
@@ -52,7 +52,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --model_name_or_path path_to_your_model \
     --do_train \
     --dataset alpaca_gpt4_zh \
-    --template qwen \
+    --template chatml \
     --finetuning_type lora \
     --output_dir path_to_sft_checkpoint \
     --overwrite_cache \
@@ -64,7 +64,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --learning_rate 5e-5 \
     --num_train_epochs 3.0 \
     --plot_loss \
-    --lora_target W_pack \
+    --lora_target c_attn \
     --fp16
 ```
 ### 预训练
